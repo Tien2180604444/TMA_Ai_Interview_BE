@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Interview AI Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            --primary: #6366f1;       /* Indigo */
+            --primary-dark: #4f46e5;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .welcome-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            text-align: center;
+        }
+
+        .welcome-card h1 {
+            font-size: 2.25rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .user-info {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin: 1.5rem 0 2rem;
+        }
+
+        .user-info strong {
+            color: var(--text);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        @media (max-width: 640px) {
+            main { padding: 1.5rem; }
+            .welcome-card { padding: 2rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Interview AI</div>
+    <div id="user-status" style="font-weight:500; color: var(--text-muted);"></div>
+</header>
+
+<main>
+    <div class="welcome-card">
+        <h1>Chào mừng bạn đến với Interview AI</h1>
+
+        <div class="user-info">
+            <div id="user"></div>
+        </div>
+
+        <p style="margin-bottom: 2rem; color: var(--text-muted);">
+            Nền tảng luyện phỏng vấn AI – Tạo phòng, nhận câu hỏi thông minh, đánh giá tự động và điều chỉnh độ khó theo trình độ của bạn.
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/rooms.html" class="btn btn-primary">Quản lý phòng phỏng vấn</a>
+            <button id="logoutBtn" class="btn btn-outline">Đăng xuất</button>
+        </div>
+    </div>
+</main>
+
+<footer>
+    © 2026 Võ Lê Anh – Interview AI Platform
+</footer>
+
+<script>
+    // Lấy thông tin user từ backend (JWT đã validate)
+    fetch("/api/auth", {
+        credentials: 'include'  // nếu dùng cookie/session, còn nếu chỉ JWT thì có thể bỏ
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("Chưa đăng nhập hoặc token hết hạn");
+            return res.json();
+        })
+        .then(data => {
+
+            document.getElementById("user-status").textContent = `Xin chào, ${data.fullName || data.email.split('@')[0]}`;
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("user").innerHTML = "Vui lòng <a href='/login'>đăng nhập</a> để tiếp tục.";
+            document.getElementById("user-status").textContent = "Chưa đăng nhập";
+        });
+
+    // Xử lý logout dùng Cognito Hosted UI logout endpoint
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        if (confirm("Bạn có chắc muốn đăng xuất?")) {
+            // Thay YOUR_COGNITO_DOMAIN và YOUR_CLIENT_ID bằng giá trị thực tế của bạn
+            // YOUR_COGNITO_DOMAIN ví dụ: myapp.auth.ap-southeast-1.amazoncognito.com
+            // logout_uri phải nằm trong danh sách Allowed sign-out URLs của App Client
+            const cognitoDomain = "ap-northeast-14ngco3uow.auth.ap-northeast-1.amazoncognito.com";          // ← thay ở đây
+            const clientId     = "40952s02tbjg7m6n9cdmsbtdm1";            // ← thay ở đây
+            const logoutUri    = encodeURIComponent("http://localhost:8080/");  // hoặc trang welcome của bạn
+
+            const logoutUrl = `https://${cognitoDomain}/logout?` +
+                `client_id=${clientId}&` +
+                `logout_uri=${logoutUri}`;
+
+            window.location.href = logoutUrl;
+        }
+    });
+</script>
+
+</body>
+</html>

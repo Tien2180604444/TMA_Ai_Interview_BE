@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Interview Session - Interview AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Header -->
+<header class="bg-white border-b shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <a href="/rooms.html" class="text-2xl font-bold text-indigo-600">← Quay lại</a>
+        <div class="flex items-center space-x-4">
+            <span id="roomInfo" class="text-gray-700 font-medium"></span>
+            <button onclick="completeInterview()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                Hoàn thành
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Step 1: Select Question Type -->
+    <div id="step1" class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Chọn loại câu hỏi</h2>
+        <p class="text-gray-600 mb-6">Chọn loại câu hỏi bạn muốn được hỏi</p>
+        <div id="questionTypes" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Question types will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Step 2: Question Display -->
+    <div id="step2" class="bg-white rounded-xl shadow-md p-6 mb-6 hidden">
+        <div class="flex justify-between items-start mb-4">
+            <h2 class="text-2xl font-bold text-gray-900">Câu hỏi</h2>
+            <span id="questionOrder" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"></span>
+        </div>
+        <div id="questionText" class="text-lg text-gray-700 mb-6 p-4 bg-gray-50 rounded-lg">
+            <!-- Question will be displayed here -->
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="generateNewQuestion()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                Tạo câu hỏi khác
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 3: Answer Input -->
+    <div id="step3" class="bg-white rounded-xl shadow-md p-6 mb-6 hidden">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Câu trả lời của bạn</h2>
+        <textarea id="answerText" rows="8" 
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Nhập câu trả lời của bạn ở đây..."></textarea>
+        <div class="mt-4 flex justify-end space-x-3">
+            <button onclick="skipQuestion()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                Bỏ qua
+            </button>
+            <button onclick="submitAnswer()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Gửi câu trả lời
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 4: Evaluation Result -->
+    <div id="step4" class="bg-white rounded-xl shadow-md p-6 mb-6 hidden">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Kết quả đánh giá</h2>
+        
+        <!-- Score Display -->
+        <div class="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
+            <div class="flex items-center justify-between">
+                <span class="text-lg font-medium text-gray-700">Điểm tổng:</span>
+                <span id="totalScore" class="text-3xl font-bold text-indigo-600">0</span>
+            </div>
+        </div>
+
+        <!-- Detailed Scores -->
+        <div id="detailedScores" class="mb-6">
+            <!-- Scores will be displayed here -->
+        </div>
+
+        <!-- AI Feedback -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Nhận xét từ AI</h3>
+            <div id="aiFeedback" class="p-4 bg-blue-50 rounded-lg text-gray-700">
+                <!-- Feedback will be displayed here -->
+            </div>
+        </div>
+
+        <!-- Next Question Button -->
+        <div class="flex justify-end">
+            <button onclick="nextQuestion()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Câu hỏi tiếp theo
+            </button>
+        </div>
+    </div>
+
+    <!-- Questions History -->
+    <div id="questionsHistory" class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Lịch sử câu hỏi</h2>
+        <div id="historyList" class="space-y-4">
+            <!-- History will be displayed here -->
+        </div>
+    </div>
+
+</main>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+        <p class="text-gray-700" id="loadingText">Đang xử lý...</p>
+    </div>
+</div>
+
+<script>
+    let currentRoom = null;
+    let currentQuestion = null;
+    let questionTypes = [];
+    let currentQuestionTypeId = null;
+    let questions = [];
+
+    // Get room ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('roomId');
+
+    if (!roomId) {
+        alert("Không tìm thấy phòng phỏng vấn");
+        window.location.href = "/rooms.html";
+    }
+
+    // Load room info
+    async function loadRoomInfo() {
+        try {
+            const res = await fetch(`/api/interview-rooms/${roomId}`, { credentials: 'include' });
+            if (!res.ok) throw new Error("Failed to load room");
+            currentRoom = await res.json();
+            document.getElementById("roomInfo").textContent = currentRoom.name;
+            
+            // Load questions if any
+            if (currentRoom.questions && currentRoom.questions.length > 0) {
+                questions = currentRoom.questions;
+                renderQuestionsHistory();
+            }
+
+            // Start interview if not started
+            if (currentRoom.status === 'PENDING') {
+                await fetch(`/api/interview-rooms/${roomId}/start`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            }
+        } catch (err) {
+            console.error("Error loading room:", err);
+            alert("Lỗi khi tải thông tin phòng");
+        }
+    }
+
+    // Load question types
+    async function loadQuestionTypes() {
+        try {
+            const res = await fetch("/cache/question-types", { credentials: 'include' });
+            if (!res.ok) throw new Error("Failed to load question types");
+            questionTypes = await res.json();
+            console.log("Loaded question types:", questionTypes); // Debug log
+            renderQuestionTypes();
+        } catch (err) {
+            console.error("Error loading question types:", err);
+            document.getElementById("questionTypes").innerHTML = 
+                '<p class="text-red-500 text-center py-4">Lỗi khi tải loại câu hỏi: ' + err.message + '</p>';
+        }
+    }
+
+    // Render question types
+    function renderQuestionTypes() {
+        const container = document.getElementById("questionTypes");
+        if (!questionTypes || questionTypes.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">Không có loại câu hỏi nào. Vui lòng thử lại sau.</p>';
+            return;
+        }
+        
+        // Filter active question types (Jackson có thể serialize isActive thành active hoặc isActive)
+        const activeTypes = questionTypes.filter(qt => {
+            // Check cả active và isActive (Jackson có thể serialize khác nhau)
+            const isActive = qt.isActive !== undefined ? qt.isActive : (qt.active !== undefined ? qt.active : true);
+            return isActive !== false;
+        });
+        
+        if (activeTypes.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">Không có loại câu hỏi nào đang hoạt động</p>';
+            return;
+        }
+        
+        container.innerHTML = activeTypes.map(qt => {
+            const typeId = qt.id;
+            const typeName = (qt.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const description = (qt.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `
+                <button onclick="selectQuestionType('${typeId}', '${typeName}')" 
+                        class="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left w-full">
+                    <h3 class="font-semibold text-gray-900">${typeName}</h3>
+                    ${description ? `<p class="text-sm text-gray-600 mt-1">${description}</p>` : ''}
+                </button>
+            `;
+        }).join("");
+    }
+
+    // Select question type and generate question
+    async function selectQuestionType(typeId, typeName) {
+        currentQuestionTypeId = typeId;
+        showLoading("Đang tạo câu hỏi...");
+        
+        try {
+            const res = await fetch(`/api/interview-rooms/${roomId}/generate-question`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ questionTypeId: typeId })
+            });
+
+            if (!res.ok) throw new Error("Failed to generate question");
+            currentQuestion = await res.json();
+            
+            document.getElementById("step1").classList.add("hidden");
+            document.getElementById("step2").classList.remove("hidden");
+            document.getElementById("step3").classList.remove("hidden");
+            document.getElementById("questionText").textContent = currentQuestion.question;
+            document.getElementById("questionOrder").textContent = `Câu ${currentQuestion.questionOrder}`;
+            hideLoading();
+        } catch (err) {
+            console.error("Error generating question:", err);
+            alert("Lỗi khi tạo câu hỏi: " + err.message);
+            hideLoading();
+        }
+    }
+
+    // Generate new question
+    async function generateNewQuestion() {
+        if (!currentQuestionTypeId) {
+            alert("Vui lòng chọn loại câu hỏi trước");
+            return;
+        }
+        await selectQuestionType(currentQuestionTypeId, "");
+    }
+
+    // Submit answer
+    async function submitAnswer() {
+        const answerText = document.getElementById("answerText").value.trim();
+        if (!answerText) {
+            alert("Vui lòng nhập câu trả lời");
+            return;
+        }
+
+        if (!currentQuestion) {
+            alert("Không có câu hỏi hiện tại");
+            return;
+        }
+
+        showLoading("Đang đánh giá câu trả lời...");
+
+        try {
+            const res = await fetch(`/api/interview-rooms/${roomId}/submit-answer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    questionId: currentQuestion.id,
+                    answerText: answerText
+                })
+            });
+
+            if (!res.ok) throw new Error("Failed to submit answer");
+            const evaluation = await res.json();
+            
+            // Display evaluation
+            displayEvaluation(evaluation);
+            document.getElementById("step3").classList.add("hidden");
+            document.getElementById("step4").classList.remove("hidden");
+            
+            // Reload room to get updated questions
+            await loadRoomInfo();
+            hideLoading();
+        } catch (err) {
+            console.error("Error submitting answer:", err);
+            alert("Lỗi khi gửi câu trả lời: " + err.message);
+            hideLoading();
+        }
+    }
+
+    // Display evaluation
+    function displayEvaluation(evaluation) {
+        document.getElementById("totalScore").textContent = evaluation.totalScore ? evaluation.totalScore.toFixed(1) : "0";
+        
+        // Parse scores JSON
+        let scores = {};
+        try {
+            scores = JSON.parse(evaluation.score || "{}");
+        } catch (e) {
+            console.error("Error parsing scores:", e);
+        }
+
+        // Display detailed scores
+        const scoresContainer = document.getElementById("detailedScores");
+        scoresContainer.innerHTML = Object.entries(scores)
+            .map(([key, value]) => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg mb-2">
+                    <span class="font-medium text-gray-700">${key}</span>
+                    <span class="text-lg font-bold text-indigo-600">${value}/10</span>
+                </div>
+            `).join("");
+
+        // Display feedback
+        document.getElementById("aiFeedback").textContent = evaluation.aiFeedback || "Không có nhận xét";
+    }
+
+    // Next question
+    function nextQuestion() {
+        document.getElementById("step4").classList.add("hidden");
+        document.getElementById("step1").classList.remove("hidden");
+        document.getElementById("answerText").value = "";
+        currentQuestion = null;
+    }
+
+    // Skip question
+    function skipQuestion() {
+        if (confirm("Bạn có chắc muốn bỏ qua câu hỏi này?")) {
+          generateNewQuestion();
+        }
+    }
+
+    // Complete interview
+    async function completeInterview() {
+        if (!confirm("Bạn có chắc muốn hoàn thành buổi phỏng vấn?")) {
+            return;
+        }
+
+        showLoading("Đang hoàn thành...");
+
+        try {
+            const res = await fetch(`/api/interview-rooms/${roomId}/complete`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            if (!res.ok) throw new Error("Failed to complete interview");
+            alert("Hoàn thành buổi phỏng vấn!");
+            window.location.href = "/rooms.html";
+        } catch (err) {
+            console.error("Error completing interview:", err);
+            alert("Lỗi khi hoàn thành: " + err.message);
+            hideLoading();
+        }
+    }
+
+    // Render questions history
+    function renderQuestionsHistory() {
+        const container = document.getElementById("historyList");
+        if (questions.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">Chưa có câu hỏi nào</p>';
+            return;
+        }
+
+        container.innerHTML = questions.map((q, index) => `
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
+                                Câu ${q.questionOrder}
+                            </span>
+                            <span class="text-sm text-gray-600">${q.questionTypeName || ''}</span>
+                        </div>
+                        <p class="font-medium text-gray-900 mb-2">${q.question}</p>
+                        ${q.answer ? `
+                            <div class="mt-2 p-3 bg-gray-50 rounded">
+                                <p class="text-sm font-medium text-gray-700 mb-1">Câu trả lời:</p>
+                                <p class="text-gray-600">${q.answer.answerText}</p>
+                                ${q.answer.evaluation ? `
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-sm font-medium text-gray-700">Điểm:</span>
+                                            <span class="text-lg font-bold text-indigo-600">${q.answer.evaluation.totalScore ? q.answer.evaluation.totalScore.toFixed(1) : '0'}/100</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600">${q.answer.evaluation.aiFeedback || 'Không có nhận xét'}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : '<p class="text-sm text-gray-500 italic">Chưa trả lời</p>'}
+                    </div>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    // Loading helpers
+    function showLoading(text = "Đang xử lý...") {
+        document.getElementById("loadingText").textContent = text;
+        document.getElementById("loadingOverlay").classList.remove("hidden");
+    }
+
+    function hideLoading() {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+    }
+
+    // Initialize
+    loadRoomInfo().then(() => {
+        loadQuestionTypes();
+    });
+</script>
+
+</body>
+</html>
